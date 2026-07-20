@@ -112,6 +112,22 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
       if (isOnAuthRoute && !auth.isAuthenticated) {
         debugPrint('[Router] → Action: Unauthenticated but on auth route, allow form');
+        final savedRole = await StorageService.getRole();
+        if (savedRole == UserRole.vendor.name &&
+            location != RouteNames.vendorLogin &&
+            location != RouteNames.vendorRegister) {
+          return RouteNames.vendorLogin;
+        }
+        if (savedRole == UserRole.admin.name &&
+            location != RouteNames.adminLogin &&
+            location != RouteNames.adminRegister) {
+          return RouteNames.adminLogin;
+        }
+        if (savedRole == UserRole.customer.name &&
+            location != RouteNames.customerLogin &&
+            location != RouteNames.customerRegister) {
+          return RouteNames.customerLogin;
+        }
         return null;
       }
 
