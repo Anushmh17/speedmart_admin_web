@@ -62,8 +62,13 @@ class RouteNames {
   static const String adminRequests = '/admin/requests';
   static const String adminOrders = '/admin/orders';
   static const String adminPayments = '/admin/payments';
-  static const String adminDisputes = '/admin/disputes';
+  static const String adminReviews = '/admin/reviews';
+  static const String adminDeliveryAreas = '/admin/delivery-areas';
+  static const String adminNotifications = '/admin/notifications';
+  static const String adminReports = '/admin/reports';
+  static const String adminActivityLogs = '/admin/activity-logs';
   static const String adminSettings = '/admin/settings';
+  static const String adminAdminUsers = '/admin/admin-users';
 
 }
 

@@ -14,6 +14,7 @@ import '../../../requests/providers/request_provider.dart';
 import '../../../orders/models/order_model.dart';
 import '../../../orders/providers/order_provider.dart';
 import '../../providers/admin_provider.dart';
+import '../../../auth/providers/auth_provider.dart';
 import 'admin_web_shell.dart';
 import '../widgets/admin_web_content.dart';
 
@@ -33,12 +34,43 @@ class _AdminHomeScreenState extends ConsumerState<AdminHomeScreen>
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     Future.microtask(() {
+      if (!mounted) return;
       ref.read(adminProvider.notifier).loadAllUsers();
       ref.read(requestProvider.notifier).loadNearbyRequests();
       ref.read(orderProvider.notifier).loadAllOrders();
-      // Reset to dashboard tab when entering home screen
-      ref.read(adminWebSectionProvider.notifier).state = 0;
+      if (!mounted) return;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _syncTabFromRoute();
+      });
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _syncTabFromRoute();
+    });
+  }
+
+  void _syncTabFromRoute() {
+    if (!mounted) return;
+    final location = GoRouter.of(context).routeInformationProvider.value.uri.path;
+    final targetIndex = _routeToTabIndex(location);
+    if (targetIndex != null && ref.read(adminWebSectionProvider) != targetIndex) {
+      ref.read(adminWebSectionProvider.notifier).state = targetIndex;
+    }
+  }
+
+  int? _routeToTabIndex(String location) {
+    if (location.startsWith('/admin/approval-requests')) return 1;
+    if (location.startsWith('/admin/users')) return 2;
+    if (location.startsWith('/admin/orders')) return 3;
+    if (location.startsWith('/admin/settings')) return 4;
+    if (location == '/admin' || location.isEmpty) return 0;
+    return null;
   }
 
   @override
@@ -118,13 +150,16 @@ class _AdminHomeScreenState extends ConsumerState<AdminHomeScreen>
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final currentIndex = ref.watch(adminWebSectionProvider);
+    final location = GoRouter.of(context).routeInformationProvider.value.uri.path;
+    final rawIndex = _routeToTabIndex(location) ?? currentIndex;
+    final effectiveIndex = rawIndex.clamp(0, 4);
 
     return PopScope(
       canPop: false,
       child: Scaffold(
         backgroundColor: isDark ? AppColors.backgroundDark : const Color(0xFFF3F4F6),
         body: IndexedStack(
-          index: currentIndex,
+          index: effectiveIndex,
           children: [
             _AdminDashboardTab(isDark: isDark, switchTab: _switchTab),
             _VendorApprovalsTab(isDark: isDark),
@@ -219,13 +254,13 @@ class _AdminDashboardTab extends ConsumerWidget {
                       physics: const NeverScrollableScrollPhysics(),
                       crossAxisSpacing: 12,
                       mainAxisSpacing: 12,
-                      childAspectRatio: constraints.maxWidth > 700 ? 1.3 : 1.2,
+                      childAspectRatio: constraints.maxWidth > 900 ? 1.3 : 1.2,
                       children: [
-                        _AdminStatCard(label: 'Total Users', value: totalUsers, icon: Icons.people_rounded, color: AppColors.info, isDark: isDark),
+                        _AdminStatCard(label: 'Total Users', value: totalUsers, icon: Icons.group_rounded, color: AppColors.info, isDark: isDark),
                         _AdminStatCard(label: 'Shop Owners', value: totalVendors, icon: Icons.storefront_rounded, color: AppColors.vendorColor, isDark: isDark),
-                        _AdminStatCard(label: 'Pending Approvals', value: pendingApprovals, icon: Icons.pending_actions_rounded, color: AppColors.warning, isDark: isDark),
-                        _AdminStatCard(label: 'Shopping Lists', value: totalRequests, icon: Icons.list_alt_rounded, color: AppColors.customerColor, isDark: isDark),
-                        _AdminStatCard(label: 'Platform Orders', value: totalOrders, icon: Icons.shopping_bag_rounded, color: AppColors.accent, isDark: isDark),
+                        _AdminStatCard(label: 'Pending Approvals', value: pendingApprovals, icon: Icons.hourglass_top_rounded, color: AppColors.warning, isDark: isDark),
+                        _AdminStatCard(label: 'Shopping Lists', value: totalRequests, icon: Icons.grid_view_rounded, color: AppColors.customerColor, isDark: isDark),
+                        _AdminStatCard(label: 'Platform Orders', value: totalOrders, icon: Icons.local_shipping_rounded, color: AppColors.accent, isDark: isDark),
                       ],
                     );
                   },
@@ -239,18 +274,18 @@ class _AdminDashboardTab extends ConsumerWidget {
                   builder: (context, constraints) {
                     final isWide = constraints.maxWidth > 600;
                     final actions = [
-                      _quickActionCard(Icons.verified_user_rounded, 'Approval Requests', '$pendingApprovals pending applications', AppColors.warning, () {
+                      _quickActionCard(Icons.pending_actions_rounded, 'Approval Requests', '$pendingApprovals pending applications', AppColors.warning, () {
                         context.push(RouteNames.adminApprovalRequests);
                       }),
                       _quickActionCard(Icons.storefront_rounded, 'Shop Owners', 'Manage accepted shop owners', AppColors.vendorColor, () {
                         context.push(RouteNames.adminVendorManagement);
                       }),
-                      _quickActionCard(Icons.people_rounded, 'User Directories', 'Suspend/Activate users', AppColors.info, () => switchTab(2)),
-                      _quickActionCard(Icons.category_rounded, 'Category Management', 'Add, edit, enable/disable categories', AppColors.accent, () {
+                      _quickActionCard(Icons.supervisor_account_rounded, 'User Directories', 'Suspend / activate users', AppColors.info, () => switchTab(2)),
+                      _quickActionCard(Icons.label_rounded, 'Category Management', 'Add, edit, enable / disable categories', AppColors.accent, () {
                         context.push('/admin/categories');
                       }),
-                      _quickActionCard(Icons.receipt_long_rounded, 'Monitor Orders', 'Track & monitor order dispatch', AppColors.success, () => switchTab(3)),
-                      _quickActionCard(Icons.settings_rounded, 'Platform Config', 'Commission percentages & values', AppColors.accent, () => switchTab(4)),
+                      _quickActionCard(Icons.local_shipping_rounded, 'Monitor Orders', 'Track & monitor order dispatch', AppColors.success, () => switchTab(3)),
+                      _quickActionCard(Icons.tune_rounded, 'Platform Config', 'Commission percentages & values', AppColors.accent, () => switchTab(4)),
                     ];
                     if (isWide) {
                       return GridView.count(
@@ -276,40 +311,45 @@ class _AdminDashboardTab extends ConsumerWidget {
 
   Widget _quickActionCard(IconData icon, String title, String subtitle, Color color, VoidCallback onTap) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-          decoration: BoxDecoration(
-            color: isDark ? AppColors.cardDark : AppColors.cardLight,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: isDark ? AppColors.borderDark : AppColors.borderLight),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 34,
-                height: 34,
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.12),
-                  borderRadius: BorderRadius.circular(10),
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Material(
+        color: isDark ? AppColors.cardDark : AppColors.cardLight,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: isDark ? AppColors.borderDark : AppColors.borderLight),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 46,
+                  height: 46,
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.14),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(icon, color: color, size: 22),
                 ),
-                child: Icon(icon, color: color, size: 16),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(title, style: AppTextStyles.labelLarge(isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight)),
-                    Text(subtitle, style: AppTextStyles.caption(isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight)),
-                  ],
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(title, style: AppTextStyles.bodyLarge(isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight)),
+                      const SizedBox(height: 4),
+                      Text(subtitle, style: AppTextStyles.bodySmall(isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight)),
+                    ],
+                  ),
                 ),
-              ),
-              Icon(Icons.arrow_forward_ios_rounded, size: 14, color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
-            ],
+                const SizedBox(width: 16),
+                Icon(Icons.arrow_forward_ios_rounded, size: 16, color: isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+              ],
+            ),
           ),
         ),
       ),
@@ -334,23 +374,40 @@ class _AdminStatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: isDark ? AppColors.cardDark : AppColors.cardLight,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: isDark ? AppColors.borderDark : AppColors.borderLight),
+        boxShadow: [
+          if (!isDark)
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 14,
+              offset: const Offset(0, 6),
+            ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Icon(icon, color: color, size: 20),
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.16),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(icon, color: color, size: 24),
+          ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              const SizedBox(height: 16),
               Text(value, style: AppTextStyles.h2(isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight)),
-              const SizedBox(height: 2),
-              Text(label, style: AppTextStyles.caption(isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight)),
+              const SizedBox(height: 6),
+              Text(label, style: AppTextStyles.bodySmall(isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight)),
             ],
           ),
         ],
@@ -864,9 +921,13 @@ class _PlatformSettingsTab extends ConsumerStatefulWidget {
 class _PlatformSettingsTabState extends ConsumerState<_PlatformSettingsTab> {
   late final TextEditingController _commissionCtrl;
   late final TextEditingController _radiusCtrl;
+  late final TextEditingController _currentPasswordCtrl;
+  late final TextEditingController _newPasswordCtrl;
+  late final TextEditingController _confirmPasswordCtrl;
 
   bool _editingCommission = false;
   bool _editingRadius = false;
+  bool _editingPassword = false;
   String _savedCommission = '10.0';
   String _savedRadius = '5';
 
@@ -875,6 +936,9 @@ class _PlatformSettingsTabState extends ConsumerState<_PlatformSettingsTab> {
     super.initState();
     _commissionCtrl = TextEditingController();
     _radiusCtrl = TextEditingController();
+    _currentPasswordCtrl = TextEditingController();
+    _newPasswordCtrl = TextEditingController();
+    _confirmPasswordCtrl = TextEditingController();
     _loadSettings();
   }
 
@@ -894,6 +958,9 @@ class _PlatformSettingsTabState extends ConsumerState<_PlatformSettingsTab> {
   void dispose() {
     _commissionCtrl.dispose();
     _radiusCtrl.dispose();
+    _currentPasswordCtrl.dispose();
+    _newPasswordCtrl.dispose();
+    _confirmPasswordCtrl.dispose();
     super.dispose();
   }
 
@@ -901,19 +968,33 @@ class _PlatformSettingsTabState extends ConsumerState<_PlatformSettingsTab> {
     final pct = double.tryParse(_commissionCtrl.text);
     if (pct == null || pct < 0 || pct > 100) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter a valid percentage between 0 and 100'), backgroundColor: Colors.red, behavior: SnackBarBehavior.floating),
+        const SnackBar(
+          content: Text('Enter a valid percentage between 0 and 100'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
       );
       return;
     }
+
     final current = await StorageService.getPlatformSettings();
-    await StorageService.savePlatformSettings(standardCommissionPct: pct, standardRadiusKm: current.radiusKm);
+    await StorageService.savePlatformSettings(
+      standardCommissionPct: pct,
+      standardRadiusKm: current.radiusKm,
+    );
     if (!mounted) return;
+
     setState(() {
       _savedCommission = pct.toStringAsFixed(1);
       _editingCommission = false;
     });
+
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Standard commission rate saved as ${pct.toStringAsFixed(1)}%'), backgroundColor: AppColors.success, behavior: SnackBarBehavior.floating),
+      SnackBar(
+        content: Text('Standard commission rate saved as ${pct.toStringAsFixed(1)}%'),
+        backgroundColor: AppColors.success,
+        behavior: SnackBarBehavior.floating,
+      ),
     );
   }
 
@@ -921,19 +1002,169 @@ class _PlatformSettingsTabState extends ConsumerState<_PlatformSettingsTab> {
     final km = int.tryParse(_radiusCtrl.text);
     if (km == null || km <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter a valid radius greater than 0'), backgroundColor: Colors.red, behavior: SnackBarBehavior.floating),
+        const SnackBar(
+          content: Text('Enter a valid radius greater than 0'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
       );
       return;
     }
+
     final current = await StorageService.getPlatformSettings();
-    await StorageService.savePlatformSettings(standardCommissionPct: current.commissionPct, standardRadiusKm: km);
+    await StorageService.savePlatformSettings(
+      standardCommissionPct: current.commissionPct,
+      standardRadiusKm: km,
+    );
     if (!mounted) return;
+
     setState(() {
       _savedRadius = km.toString();
       _editingRadius = false;
     });
+
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Standard search radius saved as ${km}km'), backgroundColor: AppColors.success, behavior: SnackBarBehavior.floating),
+      SnackBar(
+        content: Text('Standard search radius saved as ${km}km'),
+        backgroundColor: AppColors.success,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  Future<void> _saveAdminPassword() async {
+    final user = ref.read(currentUserProvider);
+    if (user == null) return;
+
+    final current = _currentPasswordCtrl.text.trim();
+    final newPassword = _newPasswordCtrl.text.trim();
+    final confirmPassword = _confirmPasswordCtrl.text.trim();
+
+    if (current.isEmpty || newPassword.isEmpty || confirmPassword.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Enter all password fields.'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Use a password of at least 8 characters.'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    if (newPassword != confirmPassword) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Passwords do not match.'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    final storedPassword = await ref.read(authProvider.notifier).getPassword(user.email);
+    if (storedPassword == null || storedPassword != current) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Current password is incorrect.'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    if (current == newPassword) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Use a different password than the current one.'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    await ref.read(authProvider.notifier).resetPassword(email: user.email, newPassword: newPassword);
+    final authState = ref.read(authProvider);
+    if (authState.hasError) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(authState.error ?? 'Password update failed.'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _editingPassword = false;
+      _currentPasswordCtrl.clear();
+      _newPasswordCtrl.clear();
+      _confirmPasswordCtrl.clear();
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Password updated successfully.'),
+        backgroundColor: AppColors.success,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  Widget _buildSectionCard({
+    required Color cardColor,
+    required Color borderColor,
+    required Color boxShadowColor,
+    required Widget header,
+    required List<Widget> children,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 22),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: borderColor),
+        boxShadow: [
+          BoxShadow(color: boxShadowColor, blurRadius: 20, offset: const Offset(0, 10)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          header,
+          const SizedBox(height: 22),
+          ...children,
+        ],
+      ),
+    );
+  }
+
+  InputDecoration _sectionInputDecoration({
+    required String labelText,
+    String? suffixText,
+    required bool enabled,
+  }) {
+    return InputDecoration(
+      labelText: labelText,
+      suffixText: suffixText,
+      border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(14))),
+      filled: true,
+      fillColor: enabled ? (widget.isDark ? const Color(0xFF2A2D34) : const Color(0xFFF4F5F7)) : (widget.isDark ? const Color(0xFF21242B) : const Color(0xFFE7EAEE)),
     );
   }
 
@@ -945,152 +1176,290 @@ class _PlatformSettingsTabState extends ConsumerState<_PlatformSettingsTab> {
     final cardColor = isDark ? AppColors.cardDark : AppColors.cardLight;
     final borderColor = isDark ? AppColors.borderDark : AppColors.borderLight;
 
+    final currentUser = ref.watch(currentUserProvider);
+    final displayName = currentUser?.fullName ?? 'Admin User';
+    final displayEmail = currentUser?.email ?? 'admin@speedmart.lk';
+
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(20, 20, 20, 40),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Platform Configuration', style: AppTextStyles.h2(primaryText)),
-            const SizedBox(height: 16),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final isCompact = constraints.maxWidth < 760;
+          final horizontalPadding = isCompact ? 16.0 : 24.0;
+          final maxContentWidth = isCompact ? double.infinity : 960.0;
+          final boxShadowColor = isDark ? Colors.black.withOpacity(0.18) : Colors.black.withOpacity(0.06);
 
-            // Commission Card
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: cardColor,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: borderColor),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.percent_rounded, color: AppColors.adminColor),
-                      const SizedBox(width: 12),
-                      Expanded(child: Text('Platform Commission Rate', style: AppTextStyles.subtitle(primaryText))),
-                      if (!_editingCommission)
-                        TextButton(
-                          onPressed: () => setState(() => _editingCommission = true),
-                          child: const Text('Edit'),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _commissionCtrl,
-                    readOnly: !_editingCommission,
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    inputFormatters: [CommissionInputFormatter()],
-                    decoration: InputDecoration(
-                      labelText: 'Standard Commission Percentage',
-                      suffixText: '%',
-                      border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
-                      filled: !_editingCommission,
-                      fillColor: isDark ? Colors.white10 : Colors.grey.shade100,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text('Default rate for new shop owners. Individual vendors can be adjusted separately.', style: AppTextStyles.caption(secondaryText)),
-                  if (_editingCommission) ...[
-                    const SizedBox(height: 12),
-                    Row(
+          return SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            padding: EdgeInsets.fromLTRB(horizontalPadding, 18, horizontalPadding, 40),
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: maxContentWidth),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Text('Platform Configuration', style: AppTextStyles.h2(primaryText)),
+                    const SizedBox(height: 14),
+                    Text('Manage core platform settings, password access, commission defaults and vendor matching.', style: AppTextStyles.bodySmall(secondaryText)),
+                    const SizedBox(height: 24),
+
+                    _buildSectionCard(
+                      cardColor: cardColor,
+                      borderColor: borderColor,
+                      boxShadowColor: boxShadowColor,
+                      header: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              color: AppColors.adminColor.withOpacity(0.14),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: const Icon(Icons.person_outline, color: AppColors.adminColor, size: 26),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Admin Profile', style: AppTextStyles.subtitle(primaryText)),
+                                const SizedBox(height: 4),
+                                Text('Your account and password settings.', style: AppTextStyles.caption(secondaryText)),
+                              ],
+                            ),
+                          ),
+                          FilledButton.tonal(
+                            style: FilledButton.styleFrom(
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                              textStyle: const TextStyle(fontWeight: FontWeight.w600),
+                              foregroundColor: AppColors.adminColor,
+                            ),
+                            onPressed: () => setState(() => _editingPassword = !_editingPassword),
+                            child: Text(_editingPassword ? 'Cancel' : 'Change Password'),
+                          ),
+                        ],
+                      ),
                       children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () => setState(() {
-                              _commissionCtrl.text = _savedCommission;
-                              _editingCommission = false;
-                            }),
-                            child: const Text('Cancel'),
+                        Text(displayName, style: AppTextStyles.bodyLarge(primaryText)),
+                        const SizedBox(height: 4),
+                        Text(displayEmail, style: AppTextStyles.caption(secondaryText)),
+                        if (_editingPassword) ...[
+                          const SizedBox(height: 20),
+                          TextField(
+                            controller: _currentPasswordCtrl,
+                            obscureText: true,
+                            decoration: _sectionInputDecoration(labelText: 'Current Password', enabled: true),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: _saveCommission,
-                            style: ElevatedButton.styleFrom(backgroundColor: AppColors.adminColor, foregroundColor: Colors.white),
-                            child: const Text('Save'),
+                          const SizedBox(height: 14),
+                          TextField(
+                            controller: _newPasswordCtrl,
+                            obscureText: true,
+                            decoration: _sectionInputDecoration(labelText: 'New Password', enabled: true),
                           ),
+                          const SizedBox(height: 14),
+                          TextField(
+                            controller: _confirmPasswordCtrl,
+                            obscureText: true,
+                            decoration: _sectionInputDecoration(labelText: 'Confirm Password', enabled: true),
+                          ),
+                          const SizedBox(height: 22),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton(
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: AppColors.adminColor,
+                                    side: BorderSide(color: AppColors.adminColor.withOpacity(0.18)),
+                                    padding: const EdgeInsets.symmetric(vertical: 14),
+                                  ),
+                                  onPressed: () => setState(() {
+                                    _editingPassword = false;
+                                    _currentPasswordCtrl.clear();
+                                    _newPasswordCtrl.clear();
+                                    _confirmPasswordCtrl.clear();
+                                  }),
+                                  child: const Text('Cancel'),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.adminColor,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(vertical: 14),
+                                  ),
+                                  onPressed: _saveAdminPassword,
+                                  child: const Text('Save Password'),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ],
+                    ),
+
+                    const SizedBox(height: 18),
+
+                    _buildSectionCard(
+                      cardColor: cardColor,
+                      borderColor: borderColor,
+                      boxShadowColor: boxShadowColor,
+                      header: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              color: AppColors.adminColor.withOpacity(0.14),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: const Icon(Icons.percent_rounded, color: AppColors.adminColor, size: 26),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(child: Text('Platform Commission Rate', style: AppTextStyles.subtitle(primaryText))),
+                          TextButton(
+                            style: TextButton.styleFrom(foregroundColor: AppColors.adminColor),
+                            onPressed: () => setState(() => _editingCommission = !_editingCommission),
+                            child: Text(_editingCommission ? 'Done' : 'Edit'),
+                          ),
+                        ],
+                      ),
+                      children: [
+                        TextField(
+                          controller: _commissionCtrl,
+                          enabled: _editingCommission,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          inputFormatters: [CommissionInputFormatter()],
+                          decoration: _sectionInputDecoration(labelText: 'Standard Commission Percentage', suffixText: '%', enabled: _editingCommission),
                         ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Default rate for new shop owners. Individual vendors can be adjusted separately.',
+                          style: AppTextStyles.caption(secondaryText),
+                        ),
+                        if (_editingCommission) ...[
+                          const SizedBox(height: 18),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton(
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: AppColors.adminColor,
+                                    side: BorderSide(color: AppColors.adminColor.withOpacity(0.18)),
+                                    padding: const EdgeInsets.symmetric(vertical: 14),
+                                  ),
+                                  onPressed: () => setState(() {
+                                    _commissionCtrl.text = _savedCommission;
+                                    _editingCommission = false;
+                                  }),
+                                  child: const Text('Cancel'),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.adminColor,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(vertical: 14),
+                                  ),
+                                  onPressed: _saveCommission,
+                                  child: const Text('Save Rate'),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ],
+                    ),
+
+                    const SizedBox(height: 18),
+
+                    _buildSectionCard(
+                      cardColor: cardColor,
+                      borderColor: borderColor,
+                      boxShadowColor: boxShadowColor,
+                      header: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Container(
+                            width: 48,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              color: AppColors.adminColor.withOpacity(0.14),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: const Icon(Icons.explore_outlined, color: AppColors.adminColor, size: 26),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(child: Text('Sri Lankan Matching Settings', style: AppTextStyles.subtitle(primaryText))),
+                          TextButton(
+                            style: TextButton.styleFrom(foregroundColor: AppColors.adminColor),
+                            onPressed: () => setState(() => _editingRadius = !_editingRadius),
+                            child: Text(_editingRadius ? 'Done' : 'Edit'),
+                          ),
+                        ],
+                      ),
+                      children: [
+                        TextField(
+                          controller: _radiusCtrl,
+                          enabled: _editingRadius,
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                          decoration: _sectionInputDecoration(labelText: 'Standard Vendor Search Radius', suffixText: 'km', enabled: _editingRadius),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          'Default radius for new shop owners. Existing vendors keep their individually assigned radius.',
+                          style: AppTextStyles.caption(secondaryText),
+                        ),
+                        if (_editingRadius) ...[
+                          const SizedBox(height: 18),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton(
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: AppColors.adminColor,
+                                    side: BorderSide(color: AppColors.adminColor.withOpacity(0.18)),
+                                    padding: const EdgeInsets.symmetric(vertical: 14),
+                                  ),
+                                  onPressed: () => setState(() {
+                                    _radiusCtrl.text = _savedRadius;
+                                    _editingRadius = false;
+                                  }),
+                                  child: const Text('Cancel'),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: AppColors.adminColor,
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(vertical: 14),
+                                  ),
+                                  onPressed: _saveRadius,
+                                  child: const Text('Save Radius'),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ],
                     ),
                   ],
-                ],
+                ),
               ),
             ),
-            const SizedBox(height: 16),
-
-            // Radius Card
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: cardColor,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: borderColor),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.explore_outlined, color: AppColors.adminColor),
-                      const SizedBox(width: 12),
-                      Expanded(child: Text('Sri Lankan Matching Settings', style: AppTextStyles.subtitle(primaryText))),
-                      if (!_editingRadius)
-                        TextButton(
-                          onPressed: () => setState(() => _editingRadius = true),
-                          child: const Text('Edit'),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _radiusCtrl,
-                    readOnly: !_editingRadius,
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    decoration: InputDecoration(
-                      labelText: 'Standard Vendor Search Radius',
-                      suffixText: 'km',
-                      border: const OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
-                      filled: !_editingRadius,
-                      fillColor: isDark ? Colors.white10 : Colors.grey.shade100,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text('Default radius for new shop owners. Existing vendors keep their individually assigned radius.', style: AppTextStyles.caption(secondaryText)),
-                  if (_editingRadius) ...[
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () => setState(() {
-                              _radiusCtrl.text = _savedRadius;
-                              _editingRadius = false;
-                            }),
-                            child: const Text('Cancel'),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: _saveRadius,
-                            style: ElevatedButton.styleFrom(backgroundColor: AppColors.adminColor, foregroundColor: Colors.white),
-                            child: const Text('Save'),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }

@@ -8,6 +8,9 @@ import '../../../auth/providers/auth_provider.dart';
 import '../../../auth/providers/theme_provider.dart';
 
 /// Tracks which admin section is active in the web shell.
+///
+/// This is still used by the inner dashboard tabs, but the sidebar highlight
+/// now derives from the current route path so it stays in sync with navigation.
 final adminWebSectionProvider = StateProvider<int>((ref) => 0);
 
 /// The responsive web shell for all admin screens.
@@ -17,14 +20,27 @@ class AdminWebShell extends ConsumerWidget {
   const AdminWebShell({super.key, required this.child});
   final Widget child;
 
-  static const _navItems = [
-    _NavItem(Icons.dashboard_rounded, Icons.dashboard_outlined, 'Dashboard', RouteNames.adminDashboard),
-    _NavItem(Icons.verified_user_rounded, Icons.verified_user_outlined, 'Approval Requests', RouteNames.adminApprovalRequests),
-    _NavItem(Icons.storefront_rounded, Icons.storefront_outlined, 'Shop Owners', RouteNames.adminVendorManagement),
-    _NavItem(Icons.people_rounded, Icons.people_outline_rounded, 'Users', RouteNames.adminDashboard),
-    _NavItem(Icons.category_rounded, Icons.category_outlined, 'Categories', RouteNames.adminCategories),
-    _NavItem(Icons.receipt_long_rounded, Icons.receipt_long_outlined, 'Orders', RouteNames.adminDashboard),
-    _NavItem(Icons.settings_rounded, Icons.settings_outlined, 'Settings', RouteNames.adminDashboard),
+  static const _navSections = [
+    _NavSection('Main', [
+      _NavItem(Icons.dashboard_rounded, Icons.dashboard_outlined, 'Dashboard', RouteNames.adminDashboard),
+      _NavItem(Icons.verified_user_rounded, Icons.verified_user_outlined, 'Approval Requests', RouteNames.adminApprovalRequests),
+      _NavItem(Icons.storefront_rounded, Icons.storefront_outlined, 'Shop Owners', RouteNames.adminVendorManagement),
+      _NavItem(Icons.people_rounded, Icons.people_outline_rounded, 'Users', RouteNames.adminUsers),
+      _NavItem(Icons.list_alt_rounded, Icons.list_alt_outlined, 'Orders', RouteNames.adminOrders),
+      _NavItem(Icons.category_rounded, Icons.category_outlined, 'Categories', RouteNames.adminCategories),
+      _NavItem(Icons.payments_rounded, Icons.payments_outlined, 'Payments', RouteNames.adminPayments),
+      _NavItem(Icons.star_rounded, Icons.star_outline_rounded, 'Reviews', RouteNames.adminReviews),
+    ]),
+    _NavSection('Management', [
+      _NavItem(Icons.location_on_rounded, Icons.location_on_outlined, 'Delivery Areas', RouteNames.adminDeliveryAreas),
+      _NavItem(Icons.notifications_rounded, Icons.notifications_none_rounded, 'Notifications', RouteNames.adminNotifications),
+      _NavItem(Icons.bar_chart_rounded, Icons.bar_chart_outlined, 'Reports', RouteNames.adminReports),
+    ]),
+    _NavSection('Settings', [
+      _NavItem(Icons.settings_rounded, Icons.settings_outlined, 'Settings', RouteNames.adminSettings),
+      _NavItem(Icons.admin_panel_settings_rounded, Icons.admin_panel_settings_outlined, 'Admin Users', RouteNames.adminAdminUsers),
+      _NavItem(Icons.history_rounded, Icons.history_toggle_off_rounded, 'Activity Logs', RouteNames.adminActivityLogs),
+    ]),
   ];
 
   @override
@@ -35,11 +51,11 @@ class AdminWebShell extends ConsumerWidget {
     final isMedium = width >= 600 && width < 900;
 
     if (isWide) {
-      return _WideLayout(child: child, isDark: isDark, navItems: _navItems);
+      return _WideLayout(child: child, isDark: isDark, navSections: _navSections);
     } else if (isMedium) {
-      return _MediumLayout(child: child, isDark: isDark, navItems: _navItems);
+      return _MediumLayout(child: child, isDark: isDark, navSections: _navSections);
     } else {
-      return _NarrowLayout(child: child, isDark: isDark, navItems: _navItems);
+      return _NarrowLayout(child: child, isDark: isDark, navSections: _navSections);
     }
   }
 }
@@ -52,13 +68,19 @@ class _NavItem {
   final String route;
 }
 
+class _NavSection {
+  const _NavSection(this.heading, this.items);
+  final String heading;
+  final List<_NavItem> items;
+}
+
 // ── Wide Layout (≥900px): full sidebar ──────────────────────────────────────
 
 class _WideLayout extends ConsumerWidget {
-  const _WideLayout({required this.child, required this.isDark, required this.navItems});
+  const _WideLayout({required this.child, required this.isDark, required this.navSections});
   final Widget child;
   final bool isDark;
-  final List<_NavItem> navItems;
+  final List<_NavSection> navSections;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -71,7 +93,7 @@ class _WideLayout extends ConsumerWidget {
         children: [
           _Sidebar(
             isDark: isDark,
-            navItems: navItems,
+            navSections: navSections,
             activeIndex: activeIndex,
             collapsed: false,
           ),
@@ -92,10 +114,10 @@ class _WideLayout extends ConsumerWidget {
 // ── Medium Layout (600–899px): collapsed icon sidebar ───────────────────────
 
 class _MediumLayout extends ConsumerWidget {
-  const _MediumLayout({required this.child, required this.isDark, required this.navItems});
+  const _MediumLayout({required this.child, required this.isDark, required this.navSections});
   final Widget child;
   final bool isDark;
-  final List<_NavItem> navItems;
+  final List<_NavSection> navSections;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -108,7 +130,7 @@ class _MediumLayout extends ConsumerWidget {
         children: [
           _Sidebar(
             isDark: isDark,
-            navItems: navItems,
+            navSections: navSections,
             activeIndex: activeIndex,
             collapsed: true,
           ),
@@ -129,10 +151,10 @@ class _MediumLayout extends ConsumerWidget {
 // ── Narrow Layout (<600px): drawer ──────────────────────────────────────────
 
 class _NarrowLayout extends ConsumerStatefulWidget {
-  const _NarrowLayout({required this.child, required this.isDark, required this.navItems});
+  const _NarrowLayout({required this.child, required this.isDark, required this.navSections});
   final Widget child;
   final bool isDark;
-  final List<_NavItem> navItems;
+  final List<_NavSection> navSections;
 
   @override
   ConsumerState<_NarrowLayout> createState() => _NarrowLayoutState();
@@ -153,7 +175,7 @@ class _NarrowLayoutState extends ConsumerState<_NarrowLayout> {
         backgroundColor: widget.isDark ? AppColors.surfaceDark : Colors.white,
         child: _SidebarContent(
           isDark: widget.isDark,
-          navItems: widget.navItems,
+          navSections: widget.navSections,
           activeIndex: activeIndex,
           collapsed: false,
           onTap: () => _scaffoldKey.currentState?.closeDrawer(),
@@ -194,12 +216,12 @@ class _ContentArea extends StatelessWidget {
 class _Sidebar extends StatelessWidget {
   const _Sidebar({
     required this.isDark,
-    required this.navItems,
+    required this.navSections,
     required this.activeIndex,
     required this.collapsed,
   });
   final bool isDark;
-  final List<_NavItem> navItems;
+  final List<_NavSection> navSections;
   final int activeIndex;
   final bool collapsed;
 
@@ -217,7 +239,7 @@ class _Sidebar extends StatelessWidget {
       ),
       child: _SidebarContent(
         isDark: isDark,
-        navItems: navItems,
+        navSections: navSections,
         activeIndex: activeIndex,
         collapsed: collapsed,
       ),
@@ -228,13 +250,13 @@ class _Sidebar extends StatelessWidget {
 class _SidebarContent extends ConsumerWidget {
   const _SidebarContent({
     required this.isDark,
-    required this.navItems,
+    required this.navSections,
     required this.activeIndex,
     required this.collapsed,
     this.onTap,
   });
   final bool isDark;
-  final List<_NavItem> navItems;
+  final List<_NavSection> navSections;
   final int activeIndex;
   final bool collapsed;
   final VoidCallback? onTap;
@@ -273,63 +295,80 @@ class _SidebarContent extends ConsumerWidget {
                 ),
         ),
         const SizedBox(height: 8),
-        // Nav items
+        // Nav sections
         Expanded(
           child: ListView.builder(
             padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
-            itemCount: navItems.length,
-            itemBuilder: (context, i) {
-              final item = navItems[i];
-              final isActive = activeIndex == i;
-              return Tooltip(
-                message: collapsed ? item.label : '',
-                child: InkWell(
-                  onTap: () {
-                    onTap?.call();
-                    _handleNavTap(context, ref, i, item.route);
-                  },
-                  borderRadius: BorderRadius.circular(10),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 150),
-                    margin: const EdgeInsets.only(bottom: 2),
-                    padding: EdgeInsets.symmetric(
-                      horizontal: collapsed ? 0 : 12,
-                      vertical: 10,
+            itemCount: navSections.length,
+            itemBuilder: (context, sectionIndex) {
+              final section = navSections[sectionIndex];
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (!collapsed) ...[
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(12, 12, 0, 6),
+                      child: Text(section.heading.toUpperCase(), style: AppTextStyles.labelSmall(isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight)),
                     ),
-                    decoration: BoxDecoration(
-                      color: isActive
-                          ? AppColors.adminColor.withOpacity(0.12)
-                          : Colors.transparent,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: collapsed
-                        ? Center(
-                            child: Icon(
-                              isActive ? item.selectedIcon : item.unselectedIcon,
-                              color: isActive ? AppColors.adminColor : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
-                              size: 22,
-                            ),
-                          )
-                        : Row(
-                            children: [
-                              Icon(
-                                isActive ? item.selectedIcon : item.unselectedIcon,
-                                color: isActive ? AppColors.adminColor : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
-                                size: 20,
-                              ),
-                              const SizedBox(width: 12),
-                              Text(
-                                item.label,
-                                style: AppTextStyles.bodyMedium(
-                                  isActive
-                                      ? AppColors.adminColor
-                                      : (isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
-                                ).copyWith(fontWeight: isActive ? FontWeight.w600 : FontWeight.normal),
-                              ),
-                            ],
+                  ],
+                  ...List.generate(section.items.length, (itemIndex) {
+                    final item = section.items[itemIndex];
+                    final globalIndex = navSections.take(sectionIndex).expand((s) => s.items).length + itemIndex;
+                    final isActive = activeIndex == globalIndex;
+                    return Tooltip(
+                      message: collapsed ? item.label : '',
+                      child: InkWell(
+                        onTap: () {
+                          onTap?.call();
+                          _handleNavTap(context, ref, globalIndex, item.route);
+                        },
+                        borderRadius: BorderRadius.circular(10),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 150),
+                          margin: const EdgeInsets.only(bottom: 2),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: collapsed ? 0 : 12,
+                            vertical: 10,
                           ),
-                  ),
-                ),
+                          decoration: BoxDecoration(
+                            color: isActive
+                                ? AppColors.adminColor.withOpacity(0.12)
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: collapsed
+                              ? Center(
+                                  child: Icon(
+                                    isActive ? item.selectedIcon : item.unselectedIcon,
+                                    color: isActive ? AppColors.adminColor : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+                                    size: 22,
+                                  ),
+                                )
+                              : Row(
+                                  children: [
+                                    Icon(
+                                      isActive ? item.selectedIcon : item.unselectedIcon,
+                                      color: isActive ? AppColors.adminColor : (isDark ? AppColors.textSecondaryDark : AppColors.textSecondaryLight),
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        item.label,
+                                        style: AppTextStyles.bodyMedium(
+                                          isActive
+                                              ? AppColors.adminColor
+                                              : (isDark ? AppColors.textPrimaryDark : AppColors.textPrimaryLight),
+                                        ).copyWith(fontWeight: isActive ? FontWeight.w600 : FontWeight.normal),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                        ),
+                      ),
+                    );
+                  }),
+                ],
               );
             },
           ),
@@ -368,24 +407,50 @@ class _SidebarContent extends ConsumerWidget {
   }
 
   void _handleNavTap(BuildContext context, WidgetRef ref, int index, String route) {
-    if (index == 0) {
-      ref.read(adminWebSectionProvider.notifier).state = 0;
-      context.go(RouteNames.adminDashboard);
-    } else if (index == 1) {
-      context.go(RouteNames.adminApprovalRequests);
-    } else if (index == 2) {
-      context.go(RouteNames.adminVendorManagement);
-    } else if (index == 3) {
-      ref.read(adminWebSectionProvider.notifier).state = 2;
-      context.go(RouteNames.adminDashboard);
-    } else if (index == 4) {
-      context.go(RouteNames.adminCategories);
-    } else if (index == 5) {
-      ref.read(adminWebSectionProvider.notifier).state = 3;
-      context.go(RouteNames.adminDashboard);
-    } else if (index == 6) {
-      ref.read(adminWebSectionProvider.notifier).state = 4;
-      context.go(RouteNames.adminDashboard);
+    switch (route) {
+      case RouteNames.adminDashboard:
+        ref.read(adminWebSectionProvider.notifier).state = 0;
+        context.go(RouteNames.adminDashboard);
+        break;
+      case RouteNames.adminApprovalRequests:
+        context.go(RouteNames.adminApprovalRequests);
+        break;
+      case RouteNames.adminVendorManagement:
+        context.go(RouteNames.adminVendorManagement);
+        break;
+      case RouteNames.adminUsers:
+        context.go(RouteNames.adminUsers);
+        break;
+      case RouteNames.adminCategories:
+        context.go(RouteNames.adminCategories);
+        break;
+      case RouteNames.adminOrders:
+        context.go(RouteNames.adminOrders);
+        break;
+      case RouteNames.adminPayments:
+        context.go(RouteNames.adminPayments);
+        break;
+      case RouteNames.adminReviews:
+        context.go(RouteNames.adminReviews);
+        break;
+      case RouteNames.adminDeliveryAreas:
+        context.go(RouteNames.adminDeliveryAreas);
+        break;
+      case RouteNames.adminNotifications:
+        context.go(RouteNames.adminNotifications);
+        break;
+      case RouteNames.adminReports:
+        context.go(RouteNames.adminReports);
+        break;
+      case RouteNames.adminSettings:
+        context.go(RouteNames.adminSettings);
+        break;
+      case RouteNames.adminAdminUsers:
+        context.go(RouteNames.adminAdminUsers);
+        break;
+      case RouteNames.adminActivityLogs:
+        context.go(RouteNames.adminActivityLogs);
+        break;
     }
   }
 }
@@ -472,7 +537,16 @@ class _WebTopBar extends ConsumerWidget {
 int _activeIndex(String location) {
   if (location.startsWith('/admin/approval-requests')) return 1;
   if (location.startsWith('/admin/vendor-management') || location.startsWith('/admin/vendor-assignment')) return 2;
-  if (location.startsWith('/admin/categories')) return 4;
-  if (location.startsWith('/admin/orders')) return 5;
+  if (location.startsWith('/admin/users')) return 3;
+  if (location.startsWith('/admin/orders')) return 4;
+  if (location.startsWith('/admin/categories')) return 5;
+  if (location.startsWith('/admin/payments')) return 6;
+  if (location.startsWith('/admin/reviews')) return 7;
+  if (location.startsWith('/admin/delivery-areas')) return 8;
+  if (location.startsWith('/admin/notifications')) return 9;
+  if (location.startsWith('/admin/reports')) return 10;
+  if (location.startsWith('/admin/settings')) return 11;
+  if (location.startsWith('/admin/admin-users')) return 12;
+  if (location.startsWith('/admin/activity-logs')) return 13;
   return 0;
 }

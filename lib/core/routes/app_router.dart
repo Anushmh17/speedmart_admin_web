@@ -26,6 +26,7 @@ import 'package:speedmart_admin_web/features/vendor/proposals/presentation/vendo
 import 'package:speedmart_admin_web/features/chat/presentation/screens/chat_screen.dart';
 import 'package:speedmart_admin_web/features/requests/presentation/screens/request_list_screen.dart';
 import 'package:speedmart_admin_web/features/admin/presentation/screens/admin_home_screen.dart';
+import 'package:speedmart_admin_web/features/admin/presentation/screens/admin_placeholder_screen.dart';
 import 'package:speedmart_admin_web/features/admin/presentation/screens/admin_vendor_management_screen.dart';
 import 'package:speedmart_admin_web/features/admin/presentation/screens/admin_vendor_assignment_screen.dart';
 import 'package:speedmart_admin_web/features/admin/presentation/screens/admin_category_management_screen.dart';
@@ -373,8 +374,112 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             },
           ),
           GoRoute(
+            path: RouteNames.adminUsers,
+            pageBuilder: (context, state) => _buildPage(
+              context,
+              state,
+              const AdminHomeScreen(),
+            ),
+          ),
+          GoRoute(
             path: RouteNames.adminCategories,
             pageBuilder: (context, state) => _buildPage(context, state, const AdminCategoryManagementScreen()),
+          ),
+          GoRoute(
+            path: RouteNames.adminOrders,
+            pageBuilder: (context, state) => _buildPage(
+              context,
+              state,
+              const AdminPlaceholderScreen(
+                title: 'Orders',
+                subtitle: 'Monitor and manage platform orders',
+              ),
+            ),
+          ),
+          GoRoute(
+            path: RouteNames.adminPayments,
+            pageBuilder: (context, state) => _buildPage(
+              context,
+              state,
+              const AdminPlaceholderScreen(
+                title: 'Payments',
+                subtitle: 'Review platform payment flows',
+              ),
+            ),
+          ),
+          GoRoute(
+            path: RouteNames.adminReviews,
+            pageBuilder: (context, state) => _buildPage(
+              context,
+              state,
+              const AdminPlaceholderScreen(
+                title: 'Reviews',
+                subtitle: 'Inspect customer and vendor reviews',
+              ),
+            ),
+          ),
+          GoRoute(
+            path: RouteNames.adminDeliveryAreas,
+            pageBuilder: (context, state) => _buildPage(
+              context,
+              state,
+              const AdminPlaceholderScreen(
+                title: 'Delivery Areas',
+                subtitle: 'Manage delivery zones and coverage',
+              ),
+            ),
+          ),
+          GoRoute(
+            path: RouteNames.adminNotifications,
+            pageBuilder: (context, state) => _buildPage(
+              context,
+              state,
+              const AdminPlaceholderScreen(
+                title: 'Notifications',
+                subtitle: 'Configure admin notifications',
+              ),
+            ),
+          ),
+          GoRoute(
+            path: RouteNames.adminReports,
+            pageBuilder: (context, state) => _buildPage(
+              context,
+              state,
+              const AdminPlaceholderScreen(
+                title: 'Reports',
+                subtitle: 'View platform performance reports',
+              ),
+            ),
+          ),
+          GoRoute(
+            path: RouteNames.adminActivityLogs,
+            pageBuilder: (context, state) => _buildPage(
+              context,
+              state,
+              const AdminPlaceholderScreen(
+                title: 'Activity Logs',
+                subtitle: 'Audit admin activity history',
+              ),
+            ),
+          ),
+          GoRoute(
+            path: RouteNames.adminSettings,
+            pageBuilder: (context, state) => _buildPage(
+              context,
+              state,
+              const AdminHomeScreen(),
+            ),
+          ),
+          GoRoute(
+            path: RouteNames.adminAdminUsers,
+            pageBuilder: (context, state) => _buildPage(
+              context,
+              state,
+              const AdminPlaceholderScreen(
+                title: 'Admin Users',
+                subtitle: 'Manage platform admin accounts',
+              ),
+            ),
           ),
           GoRoute(
             path: '/admin/orders/detail',

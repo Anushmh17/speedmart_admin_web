@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/storage/storage_service.dart';
+import 'core/utils/startup_role.dart';
 import 'shared/models/user_role.dart';
 import 'main.dart' as app;
 
@@ -12,7 +13,8 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Persist a role hint so the router does not redirect to customer/vendor
-  await StorageService.saveRole(UserRole.admin.name);
+  final startupRole = resolveStartupRole(isWeb: true, savedRole: UserRole.admin.name);
+  await StorageService.saveRole(startupRole);
 
   runApp(const ProviderScope(child: app.SpeedmartApp()));
 }

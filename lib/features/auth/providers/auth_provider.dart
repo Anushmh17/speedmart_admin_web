@@ -420,6 +420,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
     return _repo.generateResetOtp(email);
   }
 
+  /// Reads the currently stored password for [email].
+  Future<String?> getPassword(String email) async {
+    return _repo.getVendorPassword(email);
+  }
+
   /// Replaces the stored password for [email] with [newPassword].
   Future<void> resetPassword({
     required String email,

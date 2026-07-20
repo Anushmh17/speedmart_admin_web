@@ -6,7 +6,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'core/routes/app_router.dart';
 import 'core/services/local_notification_service.dart';
+import 'core/storage/storage_service.dart';
 import 'core/theme/app_theme.dart';
+import 'core/utils/startup_role.dart';
 import 'core/widgets/global_notification_overlay.dart';
 import 'core/widgets/network_fallback_wrapper.dart';
 import 'features/auth/providers/theme_provider.dart';
@@ -34,6 +36,10 @@ void main() async {
   }
 
   await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+
+  final savedRole = await StorageService.getRole();
+  final startupRole = resolveStartupRole(isWeb: kIsWeb, savedRole: savedRole);
+  await StorageService.saveRole(startupRole);
 
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
