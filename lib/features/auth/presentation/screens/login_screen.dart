@@ -226,17 +226,20 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       });
     }
 
+    final heroHeight = widget.role == UserRole.admin ? 240.0 : 320.0;
+    final heroGradientColors = widget.role == UserRole.customer
+        ? const [Color(0xFFFF8A00), Color(0xFFFFB84D)]
+        : (widget.role == UserRole.admin
+            ? const [Color(0xFF6C3483), Color(0xFF4A235A)]
+            : const [Color(0xFF2563EB), Color(0xFF0F4DB8)]);
+
     final curvedHero = ClipPath(
       clipper: AuthWaveClipper(),
       child: Container(
-        height: 320,
+        height: heroHeight,
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: widget.role == UserRole.customer
-                ? const [Color(0xFFFF8A00), Color(0xFFFFB84D)]
-                : (widget.role == UserRole.admin
-                    ? const [Color(0xFF6C3483), Color(0xFF4A235A)]
-                    : const [Color(0xFF2563EB), Color(0xFF0F4DB8)]),
+            colors: heroGradientColors,
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
           ),
@@ -245,30 +248,29 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
           bottom: false,
           child: Stack(
             children: [
-              // Back Button
-              Positioned(
-                top: 12,
-                left: 16,
-                child: GestureDetector(
-                  onTap: _handleBack,
-                  child: Container(
-                    width: 38,
-                    height: 38,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.22),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(
-                      Icons.arrow_back_ios_new_rounded,
-                      color: Colors.white,
-                      size: 17,
+              if (widget.role != UserRole.admin)
+                Positioned(
+                  top: 12,
+                  left: 16,
+                  child: GestureDetector(
+                    onTap: _handleBack,
+                    child: Container(
+                      width: 38,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.22),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(
+                        Icons.arrow_back_ios_new_rounded,
+                        color: Colors.white,
+                        size: 17,
+                      ),
                     ),
                   ),
                 ),
-              ),
-              // Speedmart Logo Pill Centered near top
               Positioned(
-                top: 14,
+                top: widget.role == UserRole.admin ? 18 : 14,
                 left: 0,
                 right: 0,
                 child: Center(
@@ -279,7 +281,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                       borderRadius: BorderRadius.circular(10),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.15),
+                          color: Colors.black.withOpacity(0.15),
                           blurRadius: 6,
                           offset: const Offset(0, 2),
                         ),
@@ -287,23 +289,22 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                     ),
                     child: Image.asset(
                       'assets/images/logo.png',
-                      width: 110,
+                      width: 100,
                       fit: BoxFit.contain,
                     ),
                   ),
                 ),
               ),
-              // Circle Container with Icon
               Positioned(
-                bottom: 55,
+                bottom: widget.role == UserRole.admin ? 36 : 55,
                 left: 0,
                 right: 0,
                 child: Center(
                   child: Container(
-                    width: 100,
-                    height: 100,
+                    width: widget.role == UserRole.admin ? 84 : 100,
+                    height: widget.role == UserRole.admin ? 84 : 100,
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.18),
+                      color: Colors.white.withOpacity(0.18),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
@@ -312,7 +313,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                           : (widget.role == UserRole.admin
                               ? Icons.admin_panel_settings_rounded
                               : Icons.storefront_rounded),
-                      size: 56,
+                      size: widget.role == UserRole.admin ? 48 : 56,
                       color: Colors.white,
                     ),
                   ),
@@ -328,16 +329,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       children: [
         Text(
           'Welcome back',
+          textAlign: TextAlign.center,
           style: AppTextStyles.display2(isDark ? Colors.white : const Color(0xFF1F2937)).copyWith(
             fontSize: 26,
             fontWeight: FontWeight.w800,
           ),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 6),
         Text(
           widget.role == UserRole.customer
               ? 'Sign in as Customer'
               : (widget.role == UserRole.admin ? 'Sign in as Admin' : 'Sign in as Vendor'),
+          textAlign: TextAlign.center,
           style: AppTextStyles.bodyLarge(_roleColor).copyWith(
             fontWeight: FontWeight.bold,
           ),
@@ -346,7 +349,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     );
 
     final formFields = Padding(
-      padding: const EdgeInsets.symmetric(horizontal: _hPad),
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
       child: widget.role == UserRole.customer
           ? _buildCustomerForm(isDark: isDark, authState: authState, custState: custState)
           : widget.role == UserRole.admin
@@ -359,20 +362,34 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       backgroundColor: isDark ? const Color(0xFF0F1115) : const Color(0xFFFFFDF8),
       body: SafeArea(
         top: false,
-        child: SingleChildScrollView(
-          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-          child: ConstrainedBox(
-            constraints: BoxConstraints(minHeight: screenHeight),
-            child: Column(
-              children: [
-                curvedHero,
-                const SizedBox(height: 22),
-                centeredTitle,
-                const SizedBox(height: 26),
-                formFields,
-                const SizedBox(height: 40), // spacer bottom padding
-              ],
-            ),
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: 22),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final availableHeight = constraints.maxHeight;
+              return SingleChildScrollView(
+                keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: availableHeight),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      curvedHero,
+                      const SizedBox(height: 14),
+                      centeredTitle,
+                      const SizedBox(height: 16),
+                      Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 560),
+                          child: formFields,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                    ],
+                  ),
+                ),
+              );
+            },
           ),
         ),
       ),
@@ -586,25 +603,28 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     final cardColor = isDark ? AppColors.cardDark : AppColors.cardLight;
     final secondaryText = isDark ? const Color(0xFFA1A1AA) : const Color(0xFF6B7280);
 
-    return Container(
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 24,
-            offset: const Offset(0, 10),
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 520),
+        child: Container(
+          padding: const EdgeInsets.all(22),
+          decoration: BoxDecoration(
+            color: cardColor,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.08),
+                blurRadius: 24,
+                offset: const Offset(0, 10),
+              ),
+            ],
+            border: Border.all(
+              color: isDark ? const Color(0xFF2D3340) : const Color(0xFFE5E7EB),
+            ),
           ),
-        ],
-        border: Border.all(
-          color: isDark ? const Color(0xFF2D3340) : const Color(0xFFE5E7EB),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
