@@ -152,6 +152,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       if (!mounted) return;
       if (savedRole == UserRole.vendor.name) {
         context.go(RouteNames.vendorLogin);
+      } else if (savedRole == UserRole.admin.name) {
+        context.go(RouteNames.adminLogin);
       } else {
         context.go(RouteNames.customerLogin);
       }
