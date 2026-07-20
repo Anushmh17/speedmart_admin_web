@@ -27,7 +27,7 @@ jobs:
         run: flutter pub get
 
       - name: Build admin web
-        run: flutter build web -t lib/main_admin.dart --release
+        run: flutter build web -t lib/main_admin.dart --release --base-href /speedmart_admin_web/
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v3
