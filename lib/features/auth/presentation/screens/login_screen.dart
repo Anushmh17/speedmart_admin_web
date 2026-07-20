@@ -742,7 +742,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
           ),
         ],
       ),
-    );
+    ),
+  ),
+);
   }
 
   // ── Helper Widgets ─────────────────────────────────────────────────────────
