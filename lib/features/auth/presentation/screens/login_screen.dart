@@ -349,7 +349,9 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
       padding: const EdgeInsets.symmetric(horizontal: _hPad),
       child: widget.role == UserRole.customer
           ? _buildCustomerForm(isDark: isDark, authState: authState, custState: custState)
-          : _buildVendorForm(isDark: isDark, authState: authState),
+          : widget.role == UserRole.admin
+              ? _buildAdminForm(isDark: isDark, authState: authState)
+              : _buildVendorForm(isDark: isDark, authState: authState),
     );
 
     return Scaffold(
@@ -573,6 +575,153 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
         const SizedBox(height: 16),
         _buildSignUpRow(isDark),
       ],
+    );
+  }
+
+  Widget _buildAdminForm({
+    required bool isDark,
+    required AuthState authState,
+  }) {
+    final surfaceColor = isDark ? AppColors.surfaceDark : AppColors.surfaceLight;
+    final cardColor = isDark ? AppColors.cardDark : AppColors.cardLight;
+    final secondaryText = isDark ? const Color(0xFFA1A1AA) : const Color(0xFF6B7280);
+
+    return Container(
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 24,
+            offset: const Offset(0, 10),
+          ),
+        ],
+        border: Border.all(
+          color: isDark ? const Color(0xFF2D3340) : const Color(0xFFE5E7EB),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: _roleColor.withOpacity(0.08),
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: _roleColor,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Icon(
+                    Icons.admin_panel_settings_rounded,
+                    color: Colors.white,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Speedmart Admin Portal',
+                        style: AppTextStyles.subtitle(isDark ? Colors.white : AppColors.textPrimaryLight).copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Secure access for site administrators',
+                        style: AppTextStyles.bodySmall(secondaryText),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 22),
+          if (authState.hasError) ...[
+            _buildErrorBanner(authState.error!),
+            const SizedBox(height: 18),
+          ],
+          Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                AppTextField(
+                  label: 'Admin email',
+                  hint: 'admin@speedmart.lk',
+                  controller: _emailCtrl,
+                  keyboardType: TextInputType.emailAddress,
+                  textInputAction: TextInputAction.next,
+                  prefixIcon: Icons.email_outlined,
+                  validator: Validators.email,
+                  onChanged: (_) {
+                    if (authState.hasError) ref.read(authProvider.notifier).clearError();
+                  },
+                ),
+                const SizedBox(height: 16),
+                AppTextField(
+                  label: 'Password',
+                  hint: 'Enter your password',
+                  controller: _passwordCtrl,
+                  obscureText: true,
+                  textInputAction: TextInputAction.done,
+                  prefixIcon: Icons.lock_outline_rounded,
+                  validator: Validators.password,
+                  onFieldSubmitted: (_) => _login(),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Checkbox(
+                      value: _rememberMe,
+                      activeColor: _roleColor,
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      onChanged: (v) => setState(() => _rememberMe = v ?? false),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Keep me signed in',
+                        style: AppTextStyles.bodySmall(secondaryText).copyWith(
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                AppButton(
+                  label: 'Sign In',
+                  onPressed: _login,
+                  isLoading: authState.isLoading,
+                  color: _roleColor,
+                  height: 56,
+                  borderRadius: 16,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          Divider(color: isDark ? const Color(0xFF2D3340) : const Color(0xFFE5E7EB)),
+          const SizedBox(height: 16),
+          Text(
+            'Need help? Contact the operations team for account assistance.',
+            style: AppTextStyles.bodySmall(secondaryText),
+          ),
+        ],
+      ),
     );
   }
 
