@@ -140,6 +140,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         debugPrint('[Router] → Action: Unauthenticated on protected route, redirect to login');
         final savedRole = await StorageService.getRole();
         if (savedRole == UserRole.vendor.name) return RouteNames.vendorLogin;
+        if (savedRole == UserRole.admin.name) return RouteNames.adminLogin;
         return RouteNames.customerLogin;
       }
 
