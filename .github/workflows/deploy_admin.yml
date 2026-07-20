@@ -1,5 +1,9 @@
 name: Build and Deploy Admin Web
 
+# Grant write permission so the workflow can push the built files to gh-pages
+permissions:
+  contents: write
+
 on:
   push:
     branches:
@@ -10,6 +14,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # ensure the checkout action leaves credentials for later git push
+          persist-credentials: true
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
