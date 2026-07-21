@@ -55,4 +55,5 @@ flutter:
 
   assets:
     - assets/images/logo.png
+    - assets/images/admin_login_bg.png
     - assets/images/
