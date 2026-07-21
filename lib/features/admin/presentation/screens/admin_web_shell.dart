@@ -381,7 +381,7 @@ class _SidebarContent extends ConsumerWidget {
             child: InkWell(
               onTap: () async {
                 await ref.read(authProvider.notifier).logout();
-                if (context.mounted) context.go(RouteNames.customerLogin);
+                if (context.mounted) context.go(RouteNames.adminLogin);
               },
               borderRadius: BorderRadius.circular(10),
               child: Container(

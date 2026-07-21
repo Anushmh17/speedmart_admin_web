@@ -21,7 +21,6 @@ class MockAuthRepository {
   /// Password storage: email -> password hash (mock implementation)
   final Map<String, String> _passwordStore = {
     // Default passwords for seed users (for testing)
-    'customer@test.com': 'customer123',
     'vendor@test.com': 'vendor123',
     'vendor2@test.com': 'vendor123',
     'vendor3@test.com': 'vendor123',
@@ -33,16 +32,6 @@ class MockAuthRepository {
 
   // ── Seed users for development/testing ────────────────────────────────────
   static final List<UserModel> _mockUsers = [
-    UserModel(
-      id: 'cust-001',
-      fullName: 'Amara Perera',
-      email: 'customer@test.com',
-      phone: '0771234567',
-      role: UserRole.customer,
-      isActive: true,
-      isVerified: true,
-      createdAt: DateTime(2025, 1, 15),
-    ),
     // Active vendor with shop assigned
     UserModel(
       id: 'vend-001',
@@ -299,48 +288,6 @@ class MockAuthRepository {
     return (user: user, token: _currentToken!);
   }
 
-  // ── Customer OTP Authentication ──────────────────────────────────────────
-  Future<bool> checkCustomerExists(String contact) async {
-    await ensureInitialized();
-    await Future.delayed(const Duration(milliseconds: 600));
-    final isEmail = contact.contains('@');
-
-    return _sessionUsers.any((u) {
-      if (u.role != UserRole.customer) return false;
-      if (isEmail) {
-        return u.email.toLowerCase() == contact.toLowerCase().trim();
-      }
-      return _phoneMatches(contact, u.phone);
-    });
-  }
-
-  Future<({UserModel user, String token})> loginCustomerOtp(String contact) async {
-    await ensureInitialized();
-    await Future.delayed(const Duration(milliseconds: 1000));
-    final isEmail = contact.contains('@');
-
-    final match = _sessionUsers.where((u) {
-      if (u.role != UserRole.customer) return false;
-      if (isEmail) {
-        return u.email.toLowerCase() == contact.toLowerCase().trim();
-      }
-      return _phoneMatches(contact, u.phone);
-    });
-
-    if (match.isEmpty) {
-      throw Exception('No account found for this ${isEmail ? 'email' : 'phone number'}. Please register.');
-    }
-    final user = match.first;
-
-    if (!user.isActive) {
-      throw Exception('Your account has been suspended. Contact support.');
-    }
-
-    _currentToken =
-        'mock_token_${user.id}_${DateTime.now().millisecondsSinceEpoch}';
-    return (user: user, token: _currentToken!);
-  }
-
   // ── Register ───────────────────────────────────────────────────────────────
   Future<({UserModel user, String token})> register({
     required String fullName,
@@ -591,41 +538,6 @@ class MockAuthRepository {
       await _persistUsers();
       debugPrint('[VendorStatusFix] Persisted vendorStatus: ${_sessionUsers[index].vendorStatus}');
     }
-  }
-
-  // ── Vendor Credential Check (without authenticating) ─────────────────────
-
-  /// Verifies vendor credentials without setting auth state.
-  /// Returns the matched user if credentials are valid.
-  Future<UserModel> verifyVendorCredentials({
-    required String email,
-    required String password,
-  }) async {
-    await ensureInitialized();
-    await Future.delayed(const Duration(milliseconds: 1200));
-
-    final match = _sessionUsers.where(
-      (u) =>
-          u.role == UserRole.vendor &&
-          u.email.toLowerCase() == email.toLowerCase().trim(),
-    );
-
-    if (match.isEmpty) {
-      throw Exception('No vendor account found with this email.');
-    }
-
-    final user = match.first;
-    final storedPassword = _passwordStore[user.email];
-
-    if (storedPassword != password) {
-      throw Exception('Incorrect password. Please try again.');
-    }
-
-    if (!user.isActive) {
-      throw Exception('Your account has been suspended. Contact support.');
-    }
-
-    return user;
   }
 
   // ── Password Reset ──────────────────────────────────────────────────────

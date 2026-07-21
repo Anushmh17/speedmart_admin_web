@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/routes/route_names.dart';
-import '../../../../core/storage/storage_service.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_logo.dart';
 import '../../providers/auth_provider.dart';
@@ -145,29 +144,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   Future<void> _navigate() async {
     if (!mounted) return;
     final authState = ref.read(authProvider);
-    if (authState.isAuthenticated) {
-      _goToRoleHome(authState.user!.role);
+    if (authState.isAuthenticated && authState.user?.role == UserRole.admin) {
+      context.go(RouteNames.adminDashboard);
     } else {
-      final savedRole = await StorageService.getRole();
       if (!mounted) return;
-      if (savedRole == UserRole.vendor.name) {
-        context.go(RouteNames.vendorLogin);
-      } else if (savedRole == UserRole.admin.name) {
-        context.go(RouteNames.adminLogin);
-      } else {
-        context.go(RouteNames.customerLogin);
-      }
-    }
-  }
-
-  void _goToRoleHome(UserRole role) {
-    switch (role) {
-      case UserRole.customer:
-        context.go(RouteNames.customerHome);
-      case UserRole.vendor:
-        context.go(RouteNames.vendorHome);
-      case UserRole.admin:
-        context.go(RouteNames.adminHome);
+      context.go(RouteNames.adminLogin);
     }
   }
 }

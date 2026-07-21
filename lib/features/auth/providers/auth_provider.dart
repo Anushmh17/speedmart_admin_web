@@ -83,25 +83,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  // ── Vendor Credential Check (without authenticating) ──────────────────────
-  /// Verifies vendor email+password without setting auth state.
-  /// Router won't redirect because isAuthenticated stays false.
-  /// Call [login] after OTP is verified to complete authentication.
-  Future<UserModel?> verifyVendorCredentials({
-    required String email,
-    required String password,
-  }) async {
-    state = state.copyWith(isLoading: true, clearError: true);
-    try {
-      final user = await _repo.verifyVendorCredentials(email: email, password: password);
-      state = state.copyWith(isLoading: false);
-      return user;
-    } catch (e) {
-      state = AuthState.withError(e.toString().replaceAll('Exception: ', ''));
-      return null;
-    }
-  }
-
   // ── Login ──────────────────────────────────────────────────────────────────
   Future<void> login({
     required String email,
@@ -132,27 +113,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
       state = AuthState.authenticated(cleanedUser);
     } catch (e) {
       state = AuthState.withError(e.toString().replaceAll('Exception: ', ''));
-    }
-  }
-
-  // ── Customer OTP Login ─────────────────────────────────────────────────────
-  Future<bool> checkCustomerExists(String contact) async {
-    await _repo.ensureInitialized();
-    return _repo.checkCustomerExists(contact);
-  }
-
-  Future<void> loginCustomerOtp({required String contact}) async {
-    state = state.copyWith(isLoading: true, clearError: true);
-    try {
-      final result = await _repo.loginCustomerOtp(contact);
-      await StorageService.saveToken(result.token);
-      await StorageService.saveUser(result.user.toJson());
-      await StorageService.saveRole(result.user.role.name);
-      state = AuthState.authenticated(result.user);
-    } catch (e) {
-      state = AuthState.withError(e.toString().replaceAll('Exception: ', ''));
-      // Do not rethrow — error is captured in AuthState; callers must not
-      // handle provider exceptions directly to avoid unhandled Future errors.
     }
   }
 

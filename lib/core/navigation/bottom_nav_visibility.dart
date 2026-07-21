@@ -28,11 +28,6 @@ class BottomNavVisibilityNotifier extends AutoDisposeNotifier<bool> {
 
     // Only show bottom navigation on MAIN dashboard tabs
     final mainDashboardRoutes = {
-      '/customer',
-      '/customer/requests',
-      '/customer/orders',
-      '/customer/profile',
-      '/vendor',
       '/admin',
     };
 
