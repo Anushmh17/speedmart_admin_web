@@ -1,0 +1,21 @@
+# Flutter/Dart/Pub
+.dart_tool/
+.packages
+.pub/
+.flutter-plugins
+.flutter-plugins-dependencies
+pubspec.lock
+
+# Build outputs
+build/
+
+# IntelliJ / VS Code
+.idea/
+.vscode/
+
+# Chrome device artifacts generated during flutter web runs
+.dart_tool/chrome-device/
+
+# Misc
+.DS_Store
+*.log
